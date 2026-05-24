@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MORFO — Simulador Intercalado</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --blue:#2B2BFF; --blue-mid:#5B6BF5; --green:#0D9E75; --green-lt:#E8F8F2;
+  --grad-g:#3BF5A0; --red:#E24B4A; --amber:#C8961E; --amber-lt:#FFF8E1;
+  --bg:#F4F4F7; --surface:#FFFFFF; --surface2:#F7F7FA; --border:#E4E4EA;
+  --text:#0C0C14; --text-mid:#4A4A5A; --text-lt:#888898; --text-faint:#AAAABC;
+  --radius:10px; --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 60px}
+
+.topbar{background:var(--text);padding:13px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{display:flex;align-items:center;gap:10px}
+.logo-text{font-size:14px;font-weight:800;color:var(--blue);letter-spacing:.06em}
+.topbar-title{font-size:11.5px;font-weight:600;color:rgba(255,255,255,.45);letter-spacing:.07em;text-transform:uppercase}
+.topbar-tag{font-size:10px;font-weight:600;color:rgba(255,255,255,.22);letter-spacing:.1em;text-transform:uppercase}
+
+.page{max-width:1320px;margin:0 auto;padding:28px 24px}
+.section-title{font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--blue-mid);margin-bottom:10px}
+
+/* ── Params ── */
+.params-outer{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:1000px){.params-outer{grid-template-columns:repeat(2,1fr)}}
+.param-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow)}
+.param-card.shared{border-top:3px solid var(--blue-mid)}
+.param-card.desbaste{border-top:3px solid #8A97FF}
+.param-card.corteraso{border-top:3px solid var(--green)}
+.param-card.nativo{border-top:3px solid var(--amber)}
+.param-card-head{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:11px}
+.ph-blue{color:var(--blue-mid)} .ph-green{color:var(--green)} .ph-amber{color:var(--amber)} .ph-purple{color:#8A97FF}
+
+.param-row{margin-bottom:9px}
+.param-row:last-child{margin-bottom:0}
+.param-label{font-size:10px;color:var(--text-mid);font-weight:500;margin-bottom:4px}
+.param-controls{display:flex;align-items:center;gap:7px}
+input[type=range]{flex:1;height:3px;accent-color:var(--blue-mid);cursor:pointer;min-width:0}
+input[type=number]{
+  width:76px;flex-shrink:0;border:1px solid var(--border);border-radius:6px;
+  padding:4px 6px;font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;
+  color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s;
+  -moz-appearance:textfield;text-align:right
+}
+input[type=number]::-webkit-inner-spin-button{opacity:.4}
+input[type=number]:focus{border-color:var(--blue-mid)}
+
+/* ── KPIs ── */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.kpi-label{font-size:10px;font-weight:600;color:var(--text-lt);margin-bottom:5px}
+.kpi-value{font-size:22px;font-weight:800;line-height:1;margin-bottom:4px}
+.kpi-note{font-size:10px;color:var(--text-faint)}
+.positive{color:var(--green)} .negative{color:var(--red)} .neutral{color:var(--text)}
+
+/* ── Charts ── */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 20px 16px;box-shadow:var(--shadow);margin-bottom:16px}
+.chart-title{font-size:11px;font-weight:700;color:var(--text-mid);margin-bottom:3px}
+.chart-sub{font-size:10px;color:var(--text-faint);margin-bottom:12px}
+.legend{display:flex;flex-wrap:wrap;gap:13px;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-mid)}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* ── Summary table ── */
+.summary-table{width:100%;border-collapse:collapse;font-size:11px}
+.summary-table th{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text-lt);padding:7px 10px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)}
+.summary-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text-mid);font-weight:500}
+.summary-table tr:last-child td{border-bottom:none}
+.summary-table td.val{font-weight:700;font-size:12px;text-align:right}
+.summary-table td.rl{font-weight:600;color:var(--text)}
+
+.assumptions{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 18px;font-size:9px;color:var(--text-faint);line-height:1.9;box-shadow:var(--shadow)}
+canvas{display:block}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none">
+      <circle cx="38" cy="32" r="18" stroke="#3B4BF5" stroke-width="10" fill="none"/>
+      <circle cx="50" cy="56" r="22" fill="url(#lg)"/>
+      <circle cx="64" cy="74" r="16" stroke="#3B4BF5" stroke-width="10" fill="none"/>
+      <defs><radialGradient id="lg" cx="60%" cy="30%"><stop offset="0%" stop-color="#3BF5A0"/><stop offset="100%" stop-color="#3B4BF5"/></radialGradient></defs>
+    </svg>
+    <div class="logo-text">MORFO</div>
+  </div>
+  <div class="topbar-title">Simulador Financeiro — Modelo Intercalado</div>
+  <div class="topbar-tag">Uso interno · Mai 2026</div>
+</div>
+
+<div class="page">
+
+<div class="section-title">Parâmetros do modelo</div>
+<div class="params-outer">
+
+  <!-- SHARED -->
+  <div class="param-card shared">
+    <div class="param-card-head ph-blue">Comum a todos os modelos</div>
+
+    <div class="param-row">
+      <div class="param-label">Preço eucalipto (R$/m³)</div>
+      <div class="param-controls"><input type="range" id="eucPrice" min="80" max="300" step="1" value="181"><input type="number" id="n_eucPrice" value="181" min="80" max="300"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo corte raso por hectare (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="cutCostHa" min="500" max="5000" step="100" value="2000"><input type="number" id="n_cutCostHa" value="2000" min="500" max="5000"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo desbaste por hectare (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="cutCostDesHa" min="500" max="8000" step="100" value="3000"><input type="number" id="n_cutCostDesHa" value="3000" min="500" max="8000"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Manutenção eucalipto (R$/ha/ano)</div>
+      <div class="param-controls"><input type="range" id="maintEuc" min="0" max="2000" step="50" value="300"><input type="number" id="n_maintEuc" value="300" min="0" max="2000"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Manutenção nativas (R$/ha/ano)</div>
+      <div class="param-controls"><input type="range" id="maintNat" min="0" max="3000" step="50" value="500"><input type="number" id="n_maintNat" value="500" min="0" max="3000"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Taxa de desconto (%)</div>
+      <div class="param-controls"><input type="range" id="discRate" min="5" max="20" step="0.5" value="10"><input type="number" id="n_discRate" value="10" min="5" max="20" step="0.5"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo implantação eucalipto R1 (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="eucCost" min="5000" max="20000" step="500" value="9000"><input type="number" id="n_eucCost" value="9000" min="5000" max="20000" step="500"></div>
+    </div>
+  </div>
+
+  <!-- DESBASTE -->
+  <div class="param-card desbaste">
+    <div class="param-card-head ph-purple">Modelo Desbaste</div>
+
+    <div class="param-row">
+      <div class="param-label">Ano do desbaste</div>
+      <div class="param-controls"><input type="range" id="desYear" min="5" max="8" step="1" value="6"><input type="number" id="n_desYear" value="6" min="5" max="8"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Volume no desbaste (m³/ha euc)</div>
+      <div class="param-controls"><input type="range" id="desVol" min="40" max="180" step="2" value="92"><input type="number" id="n_desVol" value="92" min="40" max="180"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Linhas desbastadas (de 7)</div>
+      <div class="param-controls"><input type="range" id="desLines" min="1" max="5" step="1" value="3"><input type="number" id="n_desLines" value="3" min="1" max="5"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Ano da 2ª colheita (brotação)</div>
+      <div class="param-controls"><input type="range" id="desYear2" min="10" max="16" step="1" value="13"><input type="number" id="n_desYear2" value="13" min="10" max="16"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Volume 2ª colheita (m³/ha euc)</div>
+      <div class="param-controls"><input type="range" id="desVol2" min="80" max="300" step="5" value="150"><input type="number" id="n_desVol2" value="150" min="80" max="300" step="5"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo implantação nativas (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="natCostDes" min="10000" max="50000" step="500" value="22500"><input type="number" id="n_natCostDes" value="22500" min="10000" max="50000" step="500"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo brotação R2 (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="desBrotCost" min="1000" max="10000" step="250" value="4500"><input type="number" id="n_desBrotCost" value="4500" min="1000" max="10000" step="250"></div>
+    </div>
+  </div>
+
+  <!-- CORTE RASO -->
+  <div class="param-card corteraso">
+    <div class="param-card-head ph-green">Modelo Corte Raso</div>
+
+    <div class="param-row">
+      <div class="param-label">Ano da 1ª colheita</div>
+      <div class="param-controls"><input type="range" id="crYear1" min="5" max="8" step="1" value="6"><input type="number" id="n_crYear1" value="6" min="5" max="8"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Volume 1ª colheita (m³/ha euc)</div>
+      <div class="param-controls"><input type="range" id="crVol1" min="100" max="350" step="5" value="230"><input type="number" id="n_crVol1" value="230" min="100" max="350" step="5"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Ano da 2ª colheita</div>
+      <div class="param-controls"><input type="range" id="crYear2" min="10" max="16" step="1" value="12"><input type="number" id="n_crYear2" value="12" min="10" max="16"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Volume 2ª colheita (m³/ha euc)</div>
+      <div class="param-controls"><input type="range" id="crVol2" min="100" max="350" step="5" value="230"><input type="number" id="n_crVol2" value="230" min="100" max="350" step="5"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo implantação nativas (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="natCostCR" min="10000" max="50000" step="500" value="22500"><input type="number" id="n_natCostCR" value="22500" min="10000" max="50000" step="500"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo replantio R2 (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="crReplant" min="5000" max="20000" step="500" value="9000"><input type="number" id="n_crReplant" value="9000" min="5000" max="20000" step="500"></div>
+    </div>
+  </div>
+
+  <!-- NATIVO -->
+  <div class="param-card nativo">
+    <div class="param-card-head ph-amber">Modelo 100% Nativas</div>
+
+    <div class="param-row">
+      <div class="param-label">Custo implantação nativas (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="natCost" min="10000" max="50000" step="500" value="22500"><input type="number" id="n_natCost" value="22500" min="10000" max="50000" step="500"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Custo enriquecimento pós-corte (R$/ha)</div>
+      <div class="param-controls"><input type="range" id="natEnrich" min="0" max="20000" step="500" value="5000"><input type="number" id="n_natEnrich" value="5000" min="0" max="20000" step="500"></div>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Ano do enriquecimento</div>
+      <div class="param-controls"><input type="range" id="natEnrichYear" min="6" max="20" step="1" value="14"><input type="number" id="n_natEnrichYear" value="14" min="6" max="20"></div>
+    </div>
+  </div>
+
+</div><!-- end params -->
+
+<!-- KPIs -->
+<div class="section-title">Valor Presente Líquido — por hectare total</div>
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-label">VPL — Intercalado Desbaste</div>
+    <div class="kpi-value" id="kpi_des">—</div>
+    <div class="kpi-note">horizonte: <span id="kpi_des_y">—</span> anos</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">VPL — Intercalado Corte Raso</div>
+    <div class="kpi-value" id="kpi_cr">—</div>
+    <div class="kpi-note">horizonte: <span id="kpi_cr_y">—</span> anos</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-label">VPL — 100% Nativas</div>
+    <div class="kpi-value" id="kpi_nat">—</div>
+    <div class="kpi-note">horizonte: <span id="kpi_nat_y">—</span> anos</div>
+  </div>
+</div>
+
+<!-- Main chart -->
+<div class="chart-card">
+  <div class="chart-title">Fluxo de caixa anual — comparativo (0,5 ha euc + 0,5 ha nativas)</div>
+  <div class="chart-sub">Barras = fluxo anual · Curvas tracejadas = fluxo acumulado · Eixo único R$/ha · Implantação 100% no Ano 0</div>
+  <div class="legend">
+    <div class="li"><div class="ld" style="background:rgba(138,151,255,.8)"></div>Desbaste (anual)</div>
+    <div class="li"><div class="ld" style="background:rgba(13,158,117,.75)"></div>Corte Raso (anual)</div>
+    <div class="li"><div class="ld" style="background:rgba(200,160,60,.65)"></div>100% Nativas (anual)</div>
+    <div class="li" style="margin-left:auto">
+      <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(138,151,255,.75)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>acum. Desbaste
+    </div>
+    <div class="li">
+      <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(13,158,117,.75)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>acum. Corte Raso
+    </div>
+    <div class="li">
+      <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="rgba(200,160,60,.65)" stroke-width="1.8" stroke-dasharray="5 3"/></svg>acum. Nativas
+    </div>
+  </div>
+  <div style="position:relative;height:310px"><canvas id="cfChart"></canvas></div>
+</div>
+
+<!-- Summary table -->
+<div class="chart-card">
+  <div class="chart-title">Resumo comparativo</div>
+  <div class="chart-sub">VPL, receitas brutas e vantagem vs 100% Nativas — por hectare total</div>
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>Modelo</th>
+        <th style="text-align:right">VPL</th>
+        <th style="text-align:right">vs 100% Nativas</th>
+        <th style="text-align:right">Receita euc R1 (nominal)</th>
+        <th style="text-align:right">Receita euc R2 (nominal)</th>
+        <th style="text-align:right">Total receitas (nominal)</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</div>
+
+<div class="assumptions">
+  <strong style="color:var(--text-mid)">Hipóteses:</strong>
+  Implantação eucalipto R1 e nativas: 100% no Ano 0. ·
+  Manutenção eucalipto e nativas: cobrada anualmente do Ano 1 até o ano da última colheita. ·
+  Desbaste: custo total = custo desbaste/ha (parâmetro independente) aplicado em 0,5 ha no ano do desbaste. ·
+  Brotação R2: custo aplicado integralmente no ano seguinte ao desbaste. ·
+  Corte Raso: custo corte raso/ha aplicado em 0,5 ha em cada colheita. Replantio R2: 100% no ano seguinte à 1ª colheita. ·
+  100% Nativas: custo de enriquecimento pós-corte no ano configurado. Sem receita própria. ·
+  VPL calculado até o ano da última colheita/evento de cada modelo.
+</div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// Slider + number field sync
+const params = [
+  'eucPrice','cutCostHa','cutCostDesHa','maintEuc','maintNat','discRate','eucCost',
+  'desYear','desVol','desLines','desYear2','desVol2','natCostDes','desBrotCost',
+  'crYear1','crVol1','crYear2','crVol2','natCostCR','crReplant',
+  'natCost','natEnrich','natEnrichYear'
+];
+
+params.forEach(id => {
+  const slider = $(id);
+  const num    = $('n_' + id);
+  if (!slider || !num) return;
+
+  slider.addEventListener('input', () => {
+    num.value = slider.value;
+    update();
+  });
+  num.addEventListener('input', () => {
+    let v = parseFloat(num.value);
+    if (isNaN(v)) return;
+    v = Math.min(Math.max(v, parseFloat(slider.min)), parseFloat(slider.max));
+    slider.value = v;
+    num.value = v;
+    update();
+  });
+  num.addEventListener('change', () => {
+    let v = parseFloat(num.value);
+    if (isNaN(v)) return;
+    v = Math.min(Math.max(v, parseFloat(slider.min)), parseFloat(slider.max));
+    slider.value = v;
+    num.value = v;
+    update();
+  });
+});
+
+const getP = () => {
+  const p = {};
+  params.forEach(id => { p[id] = parseFloat($(id).value); });
+  return p;
+};
+
+const pv = (v, y, r) => v / Math.pow(1 + r/100, y);
+const fmt = v => (v < 0 ? '−' : '') + 'R$' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtK = v => {
+  const s = v < 0 ? '−' : '';
+  const a = Math.abs(v);
+  return a >= 1000 ? s+'R$'+(a/1000).toFixed(0)+'k' : s+'R$'+a.toFixed(0);
+};
+
+function buildFlows(p) {
+  const {
+    eucPrice, cutCostHa, cutCostDesHa, maintEuc, maintNat, discRate, eucCost,
+    desYear, desVol, desLines, desYear2, desVol2, natCostDes, desBrotCost,
+    crYear1, crVol1, crYear2, crVol2, natCostCR, crReplant,
+    natCost, natEnrich, natEnrichYear
+  } = p;
+
+  const maxYear = Math.max(desYear2, crYear2, natEnrichYear) + 2;
+  const z = () => Array(maxYear).fill(0);
+  const add = (arr, y, v) => { if (y >= 0 && y < arr.length) arr[y] += v; };
+
+  // ── MODEL A: DESBASTE ─────────────────────────────────────────────────────
+  const cfA = z();
+  // Year 0: full implantation costs (0.5 ha each)
+  cfA[0] += -eucCost * 0.5;
+  cfA[0] += -natCostDes * 0.5;
+  // Annual maintenance from Y1 to desYear2
+  for (let y = 1; y <= desYear2; y++) {
+    cfA[y] += -maintEuc * 0.5;  // euc maintenance
+    cfA[y] += -maintNat * 0.5;  // native maintenance
+  }
+  // Desbaste harvest
+  const revDesNet = desVol * eucPrice - cutCostDesHa;  // revenue per ha euc, net of cutting cost
+  add(cfA, desYear, revDesNet * 0.5);
+  // Brotação cost in year after desbaste
+  add(cfA, desYear + 1, -desBrotCost * 0.5);
+  // R2 harvest
+  const revDes2Net = desVol2 * eucPrice - cutCostHa;
+  add(cfA, desYear2, revDes2Net * 0.5);
+
+  const cumA = cfA.reduce((acc,v,i) => { acc.push((i?acc[i-1]:0)+v); return acc; }, []);
+  const npvA = cfA.slice(0, desYear2+1).reduce((s,v,y) => s + pv(v,y,discRate), 0);
+
+  // ── MODEL B: CORTE RASO ────────────────────────────────────────────────────
+  const cfB = z();
+  cfB[0] += -eucCost * 0.5;
+  cfB[0] += -natCostCR * 0.5;
+  for (let y = 1; y <= crYear2; y++) {
+    cfB[y] += -maintEuc * 0.5;
+    cfB[y] += -maintNat * 0.5;
+  }
+  const revCR1Net = crVol1 * eucPrice - cutCostHa;
+  add(cfB, crYear1, revCR1Net * 0.5);
+  // Replantation cost year after first harvest
+  add(cfB, crYear1 + 1, -crReplant * 0.5);
+  const revCR2Net = crVol2 * eucPrice - cutCostHa;
+  add(cfB, crYear2, revCR2Net * 0.5);
+
+  const cumB = cfB.reduce((acc,v,i) => { acc.push((i?acc[i-1]:0)+v); return acc; }, []);
+  const npvB = cfB.slice(0, crYear2+1).reduce((s,v,y) => s + pv(v,y,discRate), 0);
+
+  // ── MODEL N: 100% NATIVAS ─────────────────────────────────────────────────
+  const cfN = z();
+  cfN[0] += -natCost;  // full 1 ha
+  for (let y = 1; y <= natEnrichYear; y++) {
+    cfN[y] += -maintNat;  // full 1 ha maintenance
+  }
+  add(cfN, natEnrichYear, -natEnrich);
+
+  const cumN = cfN.reduce((acc,v,i) => { acc.push((i?acc[i-1]:0)+v); return acc; }, []);
+  const npvN = cfN.slice(0, natEnrichYear+1).reduce((s,v,y) => s + pv(v,y,discRate), 0);
+
+  // Nominal revenues
+  const revDesR1 = desVol * eucPrice * 0.5;
+  const revDesR2 = desVol2 * eucPrice * 0.5;
+  const revCRR1  = crVol1 * eucPrice * 0.5;
+  const revCRR2  = crVol2 * eucPrice * 0.5;
+
+  return {
+    cfA, cfB, cfN, cumA, cumB, cumN,
+    npvA, npvB, npvN,
+    horizonA: desYear2, horizonB: crYear2, horizonN: natEnrichYear,
+    revDesR1, revDesR2, revCRR1, revCRR2, maxYear
+  };
+}
+
+let cfChartInst = null;
+
+function update() {
+  const p = getP();
+  const d = buildFlows(p);
+  const { cfA, cfB, cfN, cumA, cumB, cumN, npvA, npvB, npvN,
+          horizonA, horizonB, horizonN, revDesR1, revDesR2, revCRR1, revCRR2, maxYear } = d;
+
+  // KPIs
+  const setKPI = (elId, noteId, val, horizon) => {
+    const el = $(elId);
+    el.textContent = fmt(val);
+    el.className = 'kpi-value ' + (val > 200 ? 'positive' : val < -200 ? 'negative' : 'neutral');
+    $(noteId).textContent = horizon;
+  };
+  setKPI('kpi_des','kpi_des_y', npvA, horizonA);
+  setKPI('kpi_cr', 'kpi_cr_y',  npvB, horizonB);
+  setKPI('kpi_nat','kpi_nat_y', npvN, horizonN);
+
+  // Summary table
+  const rows = [
+    { label:'Intercalado — Desbaste',    color:'#8A97FF', npv:npvA, r1:revDesR1, r2:revDesR2 },
+    { label:'Intercalado — Corte Raso',  color:'#0D9E75', npv:npvB, r1:revCRR1,  r2:revCRR2  },
+    { label:'100% Nativas',              color:'#C8961E', npv:npvN, r1:0,         r2:0          },
+  ];
+  $('summaryBody').innerHTML = rows.map(r => {
+    const diff = r.npv - npvN;
+    const dStr = diff === 0 ? '—' : (diff>0?'+':'') + fmt(diff);
+    const dCol = diff > 0 ? '#0D9E75' : diff < 0 ? '#E24B4A' : '#888';
+    const npvCol = r.npv > 200 ? '#0D9E75' : r.npv < -200 ? '#E24B4A' : '#555';
+    const r1str = r.r1 ? fmt(r.r1) : '—';
+    const r2str = r.r2 ? fmt(r.r2) : '—';
+    const tot = r.r1 + r.r2;
+    const totStr = tot ? fmt(tot) : '—';
+    return `<tr>
+      <td class="rl" style="border-left:3px solid ${r.color};padding-left:10px">${r.label}</td>
+      <td class="val" style="color:${npvCol}">${fmt(r.npv)}</td>
+      <td class="val" style="color:${dCol}">${dStr}</td>
+      <td class="val">${r1str}</td>
+      <td class="val">${r2str}</td>
+      <td class="val" style="font-weight:800">${totStr}</td>
+    </tr>`;
+  }).join('');
+
+  // Chart
+  const labels = Array.from({length: maxYear}, (_,i) => 'A'+i);
+  const allVals = [...cfA, ...cfB, ...cfN, ...cumA, ...cumB, ...cumN];
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const padV = (maxV - minV) * 0.07;
+
+  const datasets = [
+    { type:'bar',  label:'Desbaste CF',    data:cfA,  backgroundColor:cfA.map(v=>v>=0?'rgba(138,151,255,.8)':'rgba(138,151,255,.28)'), borderWidth:0, barPercentage:.55, categoryPercentage:.65, order:5 },
+    { type:'bar',  label:'Corte Raso CF',  data:cfB,  backgroundColor:cfB.map(v=>v>=0?'rgba(13,158,117,.75)':'rgba(13,158,117,.25)'),  borderWidth:0, barPercentage:.55, categoryPercentage:.65, order:6 },
+    { type:'bar',  label:'Nativas CF',     data:cfN,  backgroundColor:cfN.map(v=>v>=0?'rgba(200,160,60,.65)':'rgba(200,160,60,.22)'),  borderWidth:0, barPercentage:.55, categoryPercentage:.65, order:7 },
+    { type:'line', label:'Acum. Desbaste', data:cumA, borderColor:'rgba(138,151,255,.75)', borderDash:[5,3], borderWidth:1.8, pointRadius:0, tension:.3, order:1 },
+    { type:'line', label:'Acum. CR',       data:cumB, borderColor:'rgba(13,158,117,.75)',  borderDash:[5,3], borderWidth:1.8, pointRadius:0, tension:.3, order:2 },
+    { type:'line', label:'Acum. Nativas',  data:cumN, borderColor:'rgba(200,160,60,.65)',  borderDash:[5,3], borderWidth:1.8, pointRadius:0, tension:.3, order:3 },
+  ];
+
+  const opts = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'rgba(12,12,20,.93)', borderColor:'rgba(91,107,245,.3)', borderWidth:1,
+        titleColor:'#fff', bodyColor:'rgba(255,255,255,.65)',
+        titleFont:{family:'Manrope',size:11,weight:'600'}, bodyFont:{family:'Manrope',size:10}, padding:9,
+        callbacks:{
+          title:c=>'Ano '+c[0].dataIndex,
+          label:c=>{ const v=Math.round(c.parsed.y); return c.dataset.label+' : '+(v<0?'−':'')+
+            'R$'+Math.abs(v).toLocaleString('pt-BR'); }
+        }
+      }
+    },
+    scales:{
+      x:{ grid:{color:'rgba(0,0,0,.04)'}, ticks:{color:'#AAAABC',font:{family:'Manrope',size:9.5},autoSkip:false,maxRotation:0} },
+      y:{
+        min:minV-padV, max:maxV+padV,
+        grid:{color:'rgba(0,0,0,.05)'}, border:{color:'rgba(0,0,0,.08)'},
+        ticks:{color:'#AAAABC',font:{family:'Manrope',size:9.5},maxTicksLimit:9,callback:v=>fmtK(v)}
+      }
+    }
+  };
+
+  if (cfChartInst) {
+    cfChartInst.data.labels = labels;
+    cfChartInst.data.datasets = datasets;
+    cfChartInst.options.scales.y.min = minV - padV;
+    cfChartInst.options.scales.y.max = maxV + padV;
+    cfChartInst.update('none');
+  } else {
+    cfChartInst = new Chart($('cfChart'), { data:{labels,datasets}, options:opts });
+  }
+}
+
+update();
+</script>
+</body>
+</html>
